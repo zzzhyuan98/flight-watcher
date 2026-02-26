@@ -20,7 +20,15 @@ Get-Content $envFile | ForEach-Object {
 
 if (-not $env:DSA_REPO_PATH) { throw 'DSA_REPO_PATH is required in .env' }
 if (-not (Test-Path $env:DSA_REPO_PATH)) { throw "DSA_REPO_PATH not found: $env:DSA_REPO_PATH" }
-if (-not $env:DSA_RUN_CMD) { $env:DSA_RUN_CMD = 'python main.py' }
+if (-not $env:DSA_RUN_CMD) { $env:DSA_RUN_CMD = 'py main.py' }
+
+function Resolve-PythonCmd {
+  if (Get-Command py -ErrorAction SilentlyContinue) { return 'py' }
+  if (Get-Command python -ErrorAction SilentlyContinue) { return 'python' }
+  throw 'Python runtime not found. Install Python (with py launcher) and try again.'
+}
+
+$pythonCmd = Resolve-PythonCmd
 
 Write-Host "[1/2] Running daily_stock_analysis..."
 Push-Location $env:DSA_REPO_PATH
@@ -32,7 +40,7 @@ try {
 }
 
 Write-Host "[2/2] Sending latest report to Telegram..."
-python (Join-Path $scriptDir 'send_report.py')
+& $pythonCmd (Join-Path $scriptDir 'send_report.py')
 if ($LASTEXITCODE -ne 0) { throw "send_report.py failed with exit code $LASTEXITCODE" }
 
 Write-Host "Done."
