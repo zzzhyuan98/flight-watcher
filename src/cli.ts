@@ -13,7 +13,13 @@ const logger = pino({ transport: { target: "pino-pretty" } });
 
 const adapters = [mockGoogleFlightsAdapter, mockSkyscannerStyleAdapter, playwrightTemplateAdapter];
 
-async function runCheck(raw: Record<string, unknown>) {
+type RunCheckResult = {
+  input: SearchInput;
+  bestPrice: number;
+  summary: string;
+};
+
+async function runCheck(raw: Record<string, unknown>, statePath = "data/state.json"): Promise<RunCheckResult> {
   const input: SearchInput = SearchInputSchema.parse({
     adults: 1,
     children: 0,
@@ -39,7 +45,6 @@ async function runCheck(raw: Record<string, unknown>) {
   const deduped = dedupeCheapest(collected);
   const ranked = rankOffers(deduped);
 
-  const statePath = "data/state.json";
   const previous = loadState(statePath);
   const currentBest = ranked[0]?.price ?? 0;
   const { delta } = detectBestDelta(currentBest, previous.lastBestPrice);
@@ -54,6 +59,8 @@ async function runCheck(raw: Record<string, unknown>) {
     lastBestPrice: currentBest,
     lastCheckedAt: new Date().toISOString()
   });
+
+  return { input, bestPrice: currentBest, summary };
 }
 
 const program = new Command();
@@ -79,5 +86,50 @@ withSharedOptions(program.command("check").description("single check")).action(a
 withSharedOptions(program.command("monitor").description("scheduler-friendly check command")).action(async (opts) => {
   await runCheck(opts);
 });
+
+program
+  .command("compare-origins")
+  .description("run same search across multiple origins and show cheapest")
+  .requiredOption("--origins <IATA,...>", "comma-separated origins, e.g. JHB,KUL")
+  .requiredOption("--destination <IATA>")
+  .requiredOption("--depart-date <YYYY-MM-DD>")
+  .option("--return-date <YYYY-MM-DD>")
+  .option("--adults <n>", "number of adults", Number)
+  .option("--children <n>", "number of children", Number)
+  .option("--cabin <cabin>", "economy|premium_economy|business|first")
+  .option("--baggage <type>", "carry_on|checked")
+  .option("--currency <code>")
+  .option("--max-stops <n>", "max stops", Number)
+  .action(async (opts) => {
+    const origins = String(opts.origins)
+      .split(/[\s,]+/)
+      .map((o) => o.trim().toUpperCase())
+      .filter(Boolean);
+
+    const base = {
+      destination: opts.destination,
+      departDate: opts.departDate,
+      returnDate: opts.returnDate,
+      adults: opts.adults,
+      children: opts.children,
+      cabin: opts.cabin,
+      baggage: opts.baggage,
+      currency: opts.currency,
+      maxStops: opts.maxStops
+    };
+
+    const results: RunCheckResult[] = [];
+    for (const origin of origins) {
+      const statePath = `data/state-${origin}.json`;
+      const result = await runCheck({ ...base, origin }, statePath);
+      results.push(result);
+    }
+
+    results.sort((a, b) => a.bestPrice - b.bestPrice);
+    const best = results[0];
+    logger.info(
+      `\nBest origin overall: ${best.input.origin} -> ${best.input.destination} at ${best.input.currency} ${best.bestPrice.toFixed(2)}`
+    );
+  });
 
 program.parseAsync(process.argv);
