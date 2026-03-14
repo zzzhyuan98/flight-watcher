@@ -1,0 +1,36 @@
+{
+  "name": "flight-watcher",
+  "version": "0.1.0",
+  "description": "Flight price comparison + promo watcher (API-free, adapter-based)",
+  "type": "module",
+  "main": "dist/cli.js",
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "check": "tsx src/cli.ts check",
+    "monitor": "tsx src/cli.ts monitor",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "flights",
+    "price",
+    "monitoring",
+    "playwright",
+    "comparison"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^14.0.1",
+    "pino": "^10.1.0",
+    "pino-pretty": "^13.1.2",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "playwright": "^1.56.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

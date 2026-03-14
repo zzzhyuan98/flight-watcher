@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-03-14T07:19:11.557Z",
+  "offers": [
+    {
+      "source": "mock-skyscanner-style",
+      "itineraryKey": "KUL-BKK-2026-04-20-AK6112",
+      "departAt": "2026-04-20T08:20:00+08:00",
+      "arriveAt": "2026-04-20T09:35:00+08:00",
+      "durationMin": 75,
+      "stops": 0,
+      "airline": "AirAsia",
+      "price": 115,
+      "currency": "MYR",
+      "baggageIncluded": false,
+      "promoTags": [
+        "limited-time"
+      ],
+      "bookingUrl": "https://www.skyscanner.com/transport/flights",
+      "scrapedAt": "2026-03-14T07:19:11.556Z",
+      "score": 135,
+      "valueScore": 7.407407407407407
+    },
+    {
+      "source": "mock-skyscanner-style",
+      "itineraryKey": "KUL-BKK-2026-04-20-OD1001",
+      "departAt": "2026-04-20T18:35:00+08:00",
+      "arriveAt": "2026-04-20T19:45:00+08:00",
+      "durationMin": 70,
+      "stops": 0,
+      "airline": "Batik Air",
+      "price": 132,
+      "currency": "MYR",
+      "baggageIncluded": false,
+      "promoTags": [
+        "flash-sale"
+      ],
+      "bookingUrl": "https://www.skyscanner.com/transport/flights",
+      "scrapedAt": "2026-03-14T07:19:11.556Z",
+      "score": 152,
+      "valueScore": 6.578947368421052
+    },
+    {
+      "source": "mock-google-flights",
+      "itineraryKey": "KUL-BKK-2026-04-20-MH1234",
+      "departAt": "2026-04-20T12:50:00+08:00",
+      "arriveAt": "2026-04-20T14:10:00+08:00",
+      "durationMin": 80,
+      "stops": 0,
+      "airline": "Malaysia Airlines",
+      "price": 179,
+      "currency": "MYR",
+      "baggageIncluded": true,
+      "promoTags": [],
+      "bookingUrl": "https://www.google.com/travel/flights",
+      "scrapedAt": "2026-03-14T07:19:11.555Z",
+      "score": 179,
+      "valueScore": 5.58659217877095
+    }
+  ]
+}
