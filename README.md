@@ -1,28 +1,26 @@
-# Flight Watcher (Amadeus API mode)
+# Flight Watcher (SerpAPI mode)
 
 A Node.js/TypeScript CLI for comparing flight prices across routes/origins and tracking price changes over time.
 
 ## Current mode
 
-- ✅ Uses **Amadeus Self-Service API** (no browser scraping / no Playwright crawling)
+- ✅ Uses **SerpAPI (Google Flights engine)**
 - ✅ Supports single-route checks and multi-origin comparisons
 - ✅ Writes JSON + Markdown reports in `data/reports/`
 - ✅ Maintains previous-best state for drop tracking
 
 ## Prerequisites
 
-Set Amadeus credentials in environment variables:
+Set SerpAPI key in environment variables:
 
 ```bash
-AMADEUS_CLIENT_ID=your_client_id
-AMADEUS_CLIENT_SECRET=your_client_secret
+SERPAPI_API_KEY=your_api_key
 ```
 
 On PowerShell (current session):
 
 ```powershell
-$env:AMADEUS_CLIENT_ID="your_client_id"
-$env:AMADEUS_CLIENT_SECRET="your_client_secret"
+$env:SERPAPI_API_KEY="your_api_key"
 ```
 
 ## Quick start
@@ -54,6 +52,6 @@ npm run monitor -- --origin KUL --destination BKK --depart-date 2027-04-11 --ret
 
 ## Notes
 
-- Amadeus test environment data/availability may differ from production.
+- SerpAPI is a paid service after trial credits.
 - Promo tags are heuristic in API mode.
-- If credentials are missing, the tool returns a clear adapter warning and no prices.
+- If key is missing, the tool returns a clear adapter warning and no prices.

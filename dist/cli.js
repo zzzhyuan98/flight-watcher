@@ -1,13 +1,13 @@
 import { Command } from "commander";
 import pino from "pino";
 import { SearchInputSchema } from "./types.js";
-import { amadeusAdapter } from "./adapters/amadeusAdapter.js";
+import { serpApiAdapter } from "./adapters/serpApiAdapter.js";
 import { dedupeCheapest, detectBestDelta, rankOffers } from "./core/rank.js";
 import { loadState, saveState } from "./core/state.js";
 import { renderSummary, writeArtifacts } from "./core/report.js";
 import { withRetry } from "./core/retry.js";
 const logger = pino({ transport: { target: "pino-pretty" } });
-const adapters = [amadeusAdapter];
+const adapters = [serpApiAdapter];
 async function runCheck(raw, statePath = "data/state.json") {
     const input = SearchInputSchema.parse({
         adults: 1,
@@ -101,7 +101,7 @@ program
     }
     const valid = results.filter((r) => r.bestPrice > 0).sort((a, b) => a.bestPrice - b.bestPrice);
     if (!valid.length) {
-        logger.warn("\nNo valid fares returned by Amadeus for selected origins.");
+        logger.warn("\nNo valid fares returned by SerpAPI for selected origins.");
         return;
     }
     const best = valid[0];
