@@ -1,19 +1,14 @@
 import { Command } from "commander";
 import pino from "pino";
 import { SearchInputSchema, type FlightOffer, type SearchInput } from "./types.js";
-import { mockGoogleFlightsAdapter } from "./adapters/mockGoogleFlights.js";
-import { mockSkyscannerStyleAdapter } from "./adapters/mockSkyscannerStyle.js";
-import { playwrightTemplateAdapter } from "./adapters/playwrightTemplate.js";
-import { googleFlightsLiveAdapter } from "./adapters/googleFlightsLive.js";
+import { amadeusAdapter } from "./adapters/amadeusAdapter.js";
 import { dedupeCheapest, detectBestDelta, rankOffers } from "./core/rank.js";
 import { loadState, saveState } from "./core/state.js";
 import { renderSummary, writeArtifacts } from "./core/report.js";
 import { withRetry } from "./core/retry.js";
 
 const logger = pino({ transport: { target: "pino-pretty" } });
-
-const defaultAdapters = [mockGoogleFlightsAdapter, mockSkyscannerStyleAdapter, playwrightTemplateAdapter];
-const liveAdapters = [googleFlightsLiveAdapter];
+const adapters = [amadeusAdapter];
 
 type RunCheckResult = {
   input: SearchInput;
@@ -21,7 +16,7 @@ type RunCheckResult = {
   summary: string;
 };
 
-async function runCheck(raw: Record<string, unknown>, statePath = "data/state.json", useLive = false): Promise<RunCheckResult> {
+async function runCheck(raw: Record<string, unknown>, statePath = "data/state.json"): Promise<RunCheckResult> {
   const input: SearchInput = SearchInputSchema.parse({
     adults: 1,
     children: 0,
@@ -34,9 +29,7 @@ async function runCheck(raw: Record<string, unknown>, statePath = "data/state.js
 
   const collected: FlightOffer[] = [];
 
-  const chosenAdapters = useLive ? liveAdapters : defaultAdapters;
-
-  for (const adapter of chosenAdapters.filter((a) => a.enabledByDefault || useLive)) {
+  for (const adapter of adapters.filter((a) => a.enabledByDefault)) {
     try {
       const result = await withRetry(() => adapter.search(input), 2, 350);
       if (result.errors.length) logger.warn({ adapter: adapter.name, errors: result.errors }, "adapter warnings");
@@ -81,15 +74,14 @@ const withSharedOptions = (cmd: Command) =>
     .option("--cabin <cabin>", "economy|premium_economy|business|first")
     .option("--baggage <type>", "carry_on|checked")
     .option("--currency <code>")
-    .option("--max-stops <n>", "max stops", Number)
-    .option("--live", "use live adapter extraction (real market page parsing)", false);
+    .option("--max-stops <n>", "max stops", Number);
 
 withSharedOptions(program.command("check").description("single check")).action(async (opts) => {
-  await runCheck(opts, "data/state.json", Boolean(opts.live));
+  await runCheck(opts, "data/state.json");
 });
 
 withSharedOptions(program.command("monitor").description("scheduler-friendly check command")).action(async (opts) => {
-  await runCheck(opts, "data/state.json", Boolean(opts.live));
+  await runCheck(opts, "data/state.json");
 });
 
 program
@@ -105,7 +97,6 @@ program
   .option("--baggage <type>", "carry_on|checked")
   .option("--currency <code>")
   .option("--max-stops <n>", "max stops", Number)
-  .option("--live", "use live adapter extraction (real market page parsing)", false)
   .action(async (opts) => {
     const origins = String(opts.origins)
       .split(/[\s,]+/)
@@ -127,13 +118,13 @@ program
     const results: RunCheckResult[] = [];
     for (const origin of origins) {
       const statePath = `data/state-${origin}.json`;
-      const result = await runCheck({ ...base, origin }, statePath, Boolean(opts.live));
+      const result = await runCheck({ ...base, origin }, statePath);
       results.push(result);
     }
 
     const valid = results.filter((r) => r.bestPrice > 0).sort((a, b) => a.bestPrice - b.bestPrice);
     if (!valid.length) {
-      logger.warn("\nNo valid live fares parsed across selected origins.");
+      logger.warn("\nNo valid fares returned by Amadeus for selected origins.");
       return;
     }
 
