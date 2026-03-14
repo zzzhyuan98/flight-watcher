@@ -17,6 +17,9 @@ A modular Node.js/TypeScript CLI for comparing flight prices across adapters and
 ```bash
 npm install
 npm run check -- --origin KUL --destination BKK --depart-date 2026-04-20 --adults 1 --cabin economy --baggage carry_on --currency MYR
+
+# Live extraction mode (real market page parsing, may be brittle)
+npm run check -- --origin KUL --destination BKK --depart-date 2026-04-20 --return-date 2026-04-27 --adults 1 --currency MYR --live
 ```
 
 Scheduler-ready command:

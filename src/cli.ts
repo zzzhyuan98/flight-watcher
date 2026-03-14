@@ -4,6 +4,7 @@ import { SearchInputSchema, type FlightOffer, type SearchInput } from "./types.j
 import { mockGoogleFlightsAdapter } from "./adapters/mockGoogleFlights.js";
 import { mockSkyscannerStyleAdapter } from "./adapters/mockSkyscannerStyle.js";
 import { playwrightTemplateAdapter } from "./adapters/playwrightTemplate.js";
+import { googleFlightsLiveAdapter } from "./adapters/googleFlightsLive.js";
 import { dedupeCheapest, detectBestDelta, rankOffers } from "./core/rank.js";
 import { loadState, saveState } from "./core/state.js";
 import { renderSummary, writeArtifacts } from "./core/report.js";
@@ -11,7 +12,8 @@ import { withRetry } from "./core/retry.js";
 
 const logger = pino({ transport: { target: "pino-pretty" } });
 
-const adapters = [mockGoogleFlightsAdapter, mockSkyscannerStyleAdapter, playwrightTemplateAdapter];
+const defaultAdapters = [mockGoogleFlightsAdapter, mockSkyscannerStyleAdapter, playwrightTemplateAdapter];
+const liveAdapters = [googleFlightsLiveAdapter];
 
 type RunCheckResult = {
   input: SearchInput;
@@ -19,7 +21,7 @@ type RunCheckResult = {
   summary: string;
 };
 
-async function runCheck(raw: Record<string, unknown>, statePath = "data/state.json"): Promise<RunCheckResult> {
+async function runCheck(raw: Record<string, unknown>, statePath = "data/state.json", useLive = false): Promise<RunCheckResult> {
   const input: SearchInput = SearchInputSchema.parse({
     adults: 1,
     children: 0,
@@ -32,7 +34,9 @@ async function runCheck(raw: Record<string, unknown>, statePath = "data/state.js
 
   const collected: FlightOffer[] = [];
 
-  for (const adapter of adapters.filter((a) => a.enabledByDefault)) {
+  const chosenAdapters = useLive ? liveAdapters : defaultAdapters;
+
+  for (const adapter of chosenAdapters.filter((a) => a.enabledByDefault || useLive)) {
     try {
       const result = await withRetry(() => adapter.search(input), 2, 350);
       if (result.errors.length) logger.warn({ adapter: adapter.name, errors: result.errors }, "adapter warnings");
@@ -77,14 +81,15 @@ const withSharedOptions = (cmd: Command) =>
     .option("--cabin <cabin>", "economy|premium_economy|business|first")
     .option("--baggage <type>", "carry_on|checked")
     .option("--currency <code>")
-    .option("--max-stops <n>", "max stops", Number);
+    .option("--max-stops <n>", "max stops", Number)
+    .option("--live", "use live adapter extraction (real market page parsing)", false);
 
 withSharedOptions(program.command("check").description("single check")).action(async (opts) => {
-  await runCheck(opts);
+  await runCheck(opts, "data/state.json", Boolean(opts.live));
 });
 
 withSharedOptions(program.command("monitor").description("scheduler-friendly check command")).action(async (opts) => {
-  await runCheck(opts);
+  await runCheck(opts, "data/state.json", Boolean(opts.live));
 });
 
 program
@@ -100,6 +105,7 @@ program
   .option("--baggage <type>", "carry_on|checked")
   .option("--currency <code>")
   .option("--max-stops <n>", "max stops", Number)
+  .option("--live", "use live adapter extraction (real market page parsing)", false)
   .action(async (opts) => {
     const origins = String(opts.origins)
       .split(/[\s,]+/)
@@ -121,12 +127,17 @@ program
     const results: RunCheckResult[] = [];
     for (const origin of origins) {
       const statePath = `data/state-${origin}.json`;
-      const result = await runCheck({ ...base, origin }, statePath);
+      const result = await runCheck({ ...base, origin }, statePath, Boolean(opts.live));
       results.push(result);
     }
 
-    results.sort((a, b) => a.bestPrice - b.bestPrice);
-    const best = results[0];
+    const valid = results.filter((r) => r.bestPrice > 0).sort((a, b) => a.bestPrice - b.bestPrice);
+    if (!valid.length) {
+      logger.warn("\nNo valid live fares parsed across selected origins.");
+      return;
+    }
+
+    const best = valid[0];
     logger.info(
       `\nBest origin overall: ${best.input.origin} -> ${best.input.destination} at ${best.input.currency} ${best.bestPrice.toFixed(2)}`
     );
