@@ -1,12 +1,12 @@
 # dependencies
-flight-watcher/node_modules/
+node_modules/
 
 # build output
-flight-watcher/dist/
+dist/
 
 # reports/state artifacts
-flight-watcher/data/state.json
-flight-watcher/data/reports/
+data/state.json
+data/reports/
 
 # logs
 *.log
