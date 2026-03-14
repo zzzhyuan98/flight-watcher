@@ -1,1 +1,16 @@
-stock_bridge/.env
+# dependencies
+flight-watcher/node_modules/
+
+# build output
+flight-watcher/dist/
+
+# reports/state artifacts
+flight-watcher/data/state.json
+flight-watcher/data/reports/
+
+# logs
+*.log
+
+# env
+.env
+.env.*
