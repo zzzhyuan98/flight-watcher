@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Command } from "commander";
 import pino from "pino";
 import { SearchInputSchema, type FlightOffer, type SearchInput } from "./types.js";
